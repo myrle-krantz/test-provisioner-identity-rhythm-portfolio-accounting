@@ -32,7 +32,6 @@ import io.mifos.core.api.util.ApiFactory;
 import io.mifos.core.lang.TenantContextHolder;
 import io.mifos.core.test.env.ExtraProperties;
 import io.mifos.core.test.env.TestEnvironment;
-import io.mifos.core.test.listener.EnableEventRecording;
 import io.mifos.core.test.listener.EventRecorder;
 import io.mifos.core.test.servicestarter.ActiveMQForTest;
 import io.mifos.core.test.servicestarter.EurekaForTest;
@@ -107,7 +106,6 @@ public class WorkflowTenantProvisioning {
 
   @Configuration
   @ActiveMQForTest.EnableActiveMQListen
-  @EnableEventRecording(maxWait = 4500000L)
   @EnableApiFactory
   @ComponentScan("io.mifos.listener")
   public static class TestConfiguration {
@@ -167,8 +165,7 @@ public class WorkflowTenantProvisioning {
     rhythmService = new Microservice<>(RhythmManager.class, "rhythm", "0.1.0-BUILD-SNAPSHOT", integrationTestEnvironment)
             .addProperties(new ExtraProperties() {{
               setProperty("rhythm.beatCheckRate", Long.toString(TimeUnit.MINUTES.toMillis(10)));
-              setProperty("rhythm.user", SCHEDULER_USER_NAME);}})
-            .debug(false, 5005);
+              setProperty("rhythm.user", SCHEDULER_USER_NAME);}});
     rhythmService.start();
 
     accountingService = new Microservice<>(LedgerManager.class, "accounting", "0.1.0-BUILD-SNAPSHOT", integrationTestEnvironment);
