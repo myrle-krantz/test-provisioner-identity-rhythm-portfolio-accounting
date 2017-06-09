@@ -21,6 +21,7 @@ import io.mifos.accounting.api.v1.client.LedgerManager;
 import io.mifos.accounting.api.v1.domain.Account;
 import io.mifos.accounting.api.v1.domain.AccountType;
 import io.mifos.accounting.api.v1.domain.Ledger;
+import io.mifos.accounting.importer.AccountImporter;
 import io.mifos.accounting.importer.LedgerImporter;
 import io.mifos.anubis.api.v1.domain.AllowedOperation;
 import io.mifos.core.api.config.EnableApiFactory;
@@ -95,7 +96,7 @@ public class WorkflowTenantProvisioning {
   private static final String CLIENT_ID = "luckyLeprachaun";
   private static final String SCHEDULER_USER_NAME = "imhotep";
   private static final String TEST_LOGGER = "test-logger";
-  private static final String LOAN_INCOME_LEDGER = "110";
+  private static final String LOAN_INCOME_LEDGER = "1100";
   private static final String ADMIN_USER_NAME = "antony";
   private static Microservice<Provisioner> provisionerService;
   private static Microservice<IdentityManager> identityService;
@@ -260,9 +261,13 @@ public class WorkflowTenantProvisioning {
       identityService.api().createUser(loanOfficerUser);
 
       final LedgerImporter ledgerImporter = new LedgerImporter(accountingService.api(), logger);
-      final URL uri = ClassLoader.getSystemResource("ledgers.txt");
-      ledgerImporter.importCSV(uri);
+      final URL ledgersUri = ClassLoader.getSystemResource("ledgers.csv");
+      ledgerImporter.importCSV(ledgersUri);
       Assert.assertTrue(this.eventRecorder.wait(POST_LEDGER, LOAN_INCOME_LEDGER));
+
+      final AccountImporter accountImporter = new AccountImporter(accountingService.api(), logger);
+      final URL accountsUri = ClassLoader.getSystemResource("accounts.csv");
+      accountImporter.importCSV(accountsUri);
 
       identityService.api().logout();
     }
