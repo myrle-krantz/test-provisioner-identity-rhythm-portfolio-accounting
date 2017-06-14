@@ -191,12 +191,11 @@ public class WorkflowTenantProvisioning {
   }
 
   @Before
-  public void before()
-  {
+  public void before() throws InterruptedException {
     identityService.waitTillRegistered(discoveryClient);
     rhythmService.waitTillRegistered(discoveryClient);
     accountingService.waitTillRegistered(discoveryClient);
-    portfolioService.waitTillRegistered(discoveryClient, rhythmService, accountingService);
+    portfolioService.waitTillRegistered(discoveryClient);
 
     provisionerService.setApiFactory(apiFactory);
     identityService.setApiFactory(apiFactory);
@@ -358,9 +357,13 @@ public class WorkflowTenantProvisioning {
 
       provisionApp(tenant, portfolioService, "portfolio manager", io.mifos.portfolio.api.v1.events.EventConstants.INITIALIZE);
 
-      Assert.assertTrue(this.eventRecorder.wait(EventConstants.OPERATION_POST_PERMITTABLE_GROUP, io.mifos.rhythm.spi.v1.PermittableGroupIds.forApplication(portfolioService.name())));
+      Assert.assertTrue(this.eventRecorder.wait(EventConstants.OPERATION_POST_PERMITTABLE_GROUP,
+              io.mifos.rhythm.spi.v1.PermittableGroupIds.forApplication(portfolioService.name())));
+
       for (int i = 0; i < 24; i++) {
-        Assert.assertTrue(eventRecorder.wait(io.mifos.rhythm.api.v1.events.EventConstants.POST_BEAT, new BeatEvent(portfolioService.name(), "alignment" + i)));
+        Assert.assertTrue("Beat #" + i,
+                eventRecorder.wait(io.mifos.rhythm.api.v1.events.EventConstants.POST_BEAT,
+                        new BeatEvent(portfolioService.name(), "alignment" + i)));
       }
 
       final Authentication schedulerAuthentication;
