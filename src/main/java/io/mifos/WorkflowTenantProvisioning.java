@@ -65,6 +65,7 @@ import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.Base64Utils;
 
@@ -260,12 +261,14 @@ public class WorkflowTenantProvisioning {
       identityService.api().createUser(loanOfficerUser);
 
       final LedgerImporter ledgerImporter = new LedgerImporter(accountingService.api(), logger);
-      final URL ledgersUri = ClassLoader.getSystemResource("ledgers.csv");
+      final ClassPathResource ledgersResource = new ClassPathResource("ledgers.csv");
+      final URL ledgersUri = ledgersResource.getURL();
       ledgerImporter.importCSV(ledgersUri);
       Assert.assertTrue(this.eventRecorder.wait(POST_LEDGER, LOAN_INCOME_LEDGER));
 
       final AccountImporter accountImporter = new AccountImporter(accountingService.api(), logger);
-      final URL accountsUri = ClassLoader.getSystemResource("accounts.csv");
+      final ClassPathResource accountsResource = new ClassPathResource("accounts.csv");
+      final URL accountsUri = accountsResource.getURL();
       accountImporter.importCSV(accountsUri);
 
       identityService.api().logout();
