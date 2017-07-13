@@ -133,13 +133,15 @@ public class WorkflowTenantProvisioning {
   @Autowired
   private ApiFactory apiFactory;
   @Autowired
+  private
   EventRecorder eventRecorder;
   @Autowired
   @Qualifier(TEST_LOGGER)
+  private
   Logger logger;
 
   @Autowired
-  protected DiscoveryClient discoveryClient;
+  private DiscoveryClient discoveryClient;
 
 
   public WorkflowTenantProvisioning() {
@@ -280,8 +282,7 @@ public class WorkflowTenantProvisioning {
 
     try (final AutoUserContext ignored = new AutoUserContext(loanOfficerUser.getIdentifier(), employeeAuthentication.getAccessToken())) {
       final Product product = defineProductWithoutAccountAssignments(
-              "io.mifos.individuallending.api.v1",
-              portfolioService.getProcessEnvironment().generateUniqueIdentifer("agro"));
+          portfolioService.getProcessEnvironment().generateUniqueIdentifer("agro"));
 
       portfolioService.api().createProduct(product);
       Assert.assertTrue(this.eventRecorder.wait(io.mifos.portfolio.api.v1.events.EventConstants.POST_PRODUCT, product.getIdentifier()));
@@ -573,10 +574,10 @@ public class WorkflowTenantProvisioning {
     return role;
   }
 
-  static private Product defineProductWithoutAccountAssignments(final String patternPackage, final String identifier) {
+  static private Product defineProductWithoutAccountAssignments(final String identifier) {
     final Product product = new Product();
     product.setIdentifier(identifier);
-    product.setPatternPackage(patternPackage);
+    product.setPatternPackage("io.mifos.individuallending.api.v1");
 
     product.setName("Agricultural Loan");
     product.setDescription("Loan for seeds or agricultural equipment");
