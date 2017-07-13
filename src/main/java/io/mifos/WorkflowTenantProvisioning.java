@@ -133,13 +133,15 @@ public class WorkflowTenantProvisioning {
   @Autowired
   private ApiFactory apiFactory;
   @Autowired
+  private
   EventRecorder eventRecorder;
   @Autowired
   @Qualifier(TEST_LOGGER)
+  private
   Logger logger;
 
   @Autowired
-  protected DiscoveryClient discoveryClient;
+  private DiscoveryClient discoveryClient;
 
 
   public WorkflowTenantProvisioning() {
@@ -280,8 +282,7 @@ public class WorkflowTenantProvisioning {
 
     try (final AutoUserContext ignored = new AutoUserContext(loanOfficerUser.getIdentifier(), employeeAuthentication.getAccessToken())) {
       final Product product = defineProductWithoutAccountAssignments(
-              "io.mifos.individuallending.api.v1",
-              portfolioService.getProcessEnvironment().generateUniqueIdentifer("agro"));
+          portfolioService.getProcessEnvironment().generateUniqueIdentifer("agro"));
 
       portfolioService.api().createProduct(product);
       Assert.assertTrue(this.eventRecorder.wait(io.mifos.portfolio.api.v1.events.EventConstants.POST_PRODUCT, product.getIdentifier()));
@@ -327,8 +328,16 @@ public class WorkflowTenantProvisioning {
       final AssignedApplication isisAssigned = new AssignedApplication();
       isisAssigned.setName(identityService.name());
 
+      //Test that repeated calls to provision identity manager don't break things.
+      provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
+      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
+
       final IdentityManagerInitialization tenantAdminPassword
-              = provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+          = provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
 
 
       //Creation of the schedulerUserRole, and permitting it to create application permission requests are needed in the
@@ -453,6 +462,8 @@ public class WorkflowTenantProvisioning {
     assignedApp.setName(service.name());
 
     provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
+    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
+    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
 
     Assert.assertTrue(this.eventRecorder.wait(initialize_event, initialize_event));
     Assert.assertTrue(this.eventRecorder.waitForMatch(EventConstants.OPERATION_PUT_APPLICATION_SIGNATURE,
@@ -573,10 +584,10 @@ public class WorkflowTenantProvisioning {
     return role;
   }
 
-  static private Product defineProductWithoutAccountAssignments(final String patternPackage, final String identifier) {
+  static private Product defineProductWithoutAccountAssignments(final String identifier) {
     final Product product = new Product();
     product.setIdentifier(identifier);
-    product.setPatternPackage(patternPackage);
+    product.setPatternPackage("io.mifos.individuallending.api.v1");
 
     product.setName("Agricultural Loan");
     product.setDescription("Loan for seeds or agricultural equipment");
