@@ -462,6 +462,8 @@ public class WorkflowTenantProvisioning {
     assignedApp.setName(service.name());
 
     provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
+    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
+    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
 
     Assert.assertTrue(this.eventRecorder.wait(initialize_event, initialize_event));
     Assert.assertTrue(this.eventRecorder.waitForMatch(EventConstants.OPERATION_PUT_APPLICATION_SIGNATURE,
