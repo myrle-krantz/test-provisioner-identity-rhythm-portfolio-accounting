@@ -328,8 +328,16 @@ public class WorkflowTenantProvisioning {
       final AssignedApplication isisAssigned = new AssignedApplication();
       isisAssigned.setName(identityService.name());
 
+      //Test that repeated calls to provision identity manager don't break things.
+      provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
+      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
+
       final IdentityManagerInitialization tenantAdminPassword
-              = provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+          = provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
+      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
 
 
       //Creation of the schedulerUserRole, and permitting it to create application permission requests are needed in the
