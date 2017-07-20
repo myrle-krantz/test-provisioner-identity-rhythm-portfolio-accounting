@@ -132,13 +132,14 @@ public class WorkflowTenantProvisioning {
 
   @Autowired
   private ApiFactory apiFactory;
+
+  @SuppressWarnings("SpringJavaAutowiringInspection")
   @Autowired
-  private
-  EventRecorder eventRecorder;
+  private EventRecorder eventRecorder;
+
   @Autowired
   @Qualifier(TEST_LOGGER)
-  private
-  Logger logger;
+  private Logger logger;
 
   @Autowired
   private DiscoveryClient discoveryClient;
@@ -306,6 +307,8 @@ public class WorkflowTenantProvisioning {
 
       identityService.api().logout();
     }
+
+    migrateAppsViaSeshat();
   }
 
   private String provisionAppsViaSeshat() throws InterruptedException {
@@ -332,12 +335,9 @@ public class WorkflowTenantProvisioning {
       provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
       provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
       provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
-      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
-      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
 
       final IdentityManagerInitialization tenantAdminPassword
           = provisionerService.api().assignIdentityManager(tenant.getIdentifier(), isisAssigned);
-      Assert.assertTrue(eventRecorder.wait(io.mifos.identity.api.v1.events.EventConstants.OPERATION_PUT_USER_PASSWORD, "antony"));
 
 
       //Creation of the schedulerUserRole, and permitting it to create application permission requests are needed in the
@@ -397,6 +397,17 @@ public class WorkflowTenantProvisioning {
     }
   }
 
+  private void migrateAppsViaSeshat() throws InterruptedException {
+    final AuthenticationResponse authenticationResponse
+        = provisionerService.api().authenticate(CLIENT_ID, ApiConstants.SYSTEM_SU, "oS/0IiAME/2unkN1momDrhAdNKOhGykYFH/mJN20");
+
+    try (final AutoSeshat ignored = new AutoSeshat(authenticationResponse.getToken())) {
+      assignApplication(TenantContextHolder.checkedGetIdentifier(), rhythmService.name(), io.mifos.rhythm.api.v1.events.EventConstants.INITIALIZE);
+      assignApplication(TenantContextHolder.checkedGetIdentifier(), accountingService.name(), io.mifos.accounting.api.v1.EventConstants.INITIALIZE);
+      assignApplication(TenantContextHolder.checkedGetIdentifier(), portfolioService.name(), io.mifos.portfolio.api.v1.events.EventConstants.INITIALIZE);
+    }
+  }
+
   private void checkCreationOfPermittableGroupsInIsis() throws InterruptedException {
     Assert.assertTrue(this.eventRecorder.wait(EventConstants.OPERATION_POST_PERMITTABLE_GROUP, io.mifos.portfolio.api.v1.PermittableGroupIds.CASE_MANAGEMENT));
     Assert.assertTrue(this.eventRecorder.wait(EventConstants.OPERATION_POST_PERMITTABLE_GROUP, io.mifos.portfolio.api.v1.PermittableGroupIds.PRODUCT_MANAGEMENT));
@@ -448,7 +459,7 @@ public class WorkflowTenantProvisioning {
           final Tenant tenant,
           final Microservice<T> service,
           final String description,
-          final String initialize_event) throws InterruptedException {
+          final String initializeEvent) throws InterruptedException {
 
     final Application app = new Application();
     app.setName(service.name());
@@ -458,16 +469,23 @@ public class WorkflowTenantProvisioning {
 
     provisionerService.api().createApplication(app);
 
+    assignApplication(tenant.getIdentifier(), service.name(), initializeEvent);
+  }
+
+  private void assignApplication(final String tenantIdentifier,
+                                 final String serviceName,
+                                 final String initializeEvent) throws InterruptedException {
     final AssignedApplication assignedApp = new AssignedApplication();
-    assignedApp.setName(service.name());
+    assignedApp.setName(serviceName);
 
-    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
-    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
-    provisionerService.api().assignApplications(tenant.getIdentifier(), Collections.singletonList(assignedApp));
+    //Three times to test that multiple calls don't fail.
+    provisionerService.api().assignApplications(tenantIdentifier, Collections.singletonList(assignedApp));
+    provisionerService.api().assignApplications(tenantIdentifier, Collections.singletonList(assignedApp));
+    provisionerService.api().assignApplications(tenantIdentifier, Collections.singletonList(assignedApp));
 
-    Assert.assertTrue(this.eventRecorder.wait(initialize_event, initialize_event));
+    Assert.assertTrue(this.eventRecorder.wait(initializeEvent, initializeEvent));
     Assert.assertTrue(this.eventRecorder.waitForMatch(EventConstants.OPERATION_PUT_APPLICATION_SIGNATURE,
-            (ApplicationSignatureEvent x) -> x.getApplicationIdentifier().equals(service.name())));
+            (ApplicationSignatureEvent x) -> x.getApplicationIdentifier().equals(serviceName)));
   }
 
   private void enableUser(final UserWithPassword userWithPassword) throws InterruptedException {
